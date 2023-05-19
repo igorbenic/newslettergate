@@ -15,9 +15,7 @@ class DB {
     public function get_by_columns( $columns ) {
         global $wpdb;
 
-        $select = "SELECT * FROM {$this->get_table_name()}";
-
-        $where_clause = 'WHERE 1=1';
+        $where_clause = ' WHERE 1=1';
         foreach ( $columns as $column => $value ) {
 
             if ( is_array( $value ) ) {
@@ -41,7 +39,7 @@ class DB {
             $where_clause .= " AND {$column} " . ( is_array( $value ) ? " IN (" . $escaped_value . ")" : "=" . $escaped_value );
         }
 
-        return $wpdb->get_results( $select . ' ' . $where_clause, ARRAY_A );
+        return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %s' . $where_clause, $this->get_table_name() ), ARRAY_A );
     }
 
     public function get_by_column( $column, $value ) {

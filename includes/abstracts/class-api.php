@@ -24,7 +24,7 @@ abstract class API extends Integration {
         }
 
         add_action( 'init', [ $this, 'maybe_get_access_token'] );
-        //add_action( '_refresh_oauth_token', [ $this, 'refresh_oauth_token' ] );
+        add_action( 'newslettergate_' . $this->get_id() . '_refresh_oauth_token', [ $this, 'refresh_oauth_token' ] );
     }
 
     public function refresh_oauth_token() {

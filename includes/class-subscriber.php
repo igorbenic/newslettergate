@@ -90,7 +90,6 @@ class Subscriber {
             }
         }
 
-
         $new_cookie_order = count( $cookies ) + 1;
 
         // Find cookies that exist

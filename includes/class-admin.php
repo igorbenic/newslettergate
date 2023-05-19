@@ -13,8 +13,7 @@ class Admin extends Settings {
         $this->id = 'newslettergate';
         $this->menu_title = __( 'NewsletterGate', 'newslettergate' );
         $this->page_title = __( 'NewsletterGate', 'newslettergate' );
-        $this->menu_icon  = 'dashicons-email';
-        $this->menu_icon  = 'data:image/svg+xml;base64,' . base64_encode( file_get_contents(trailingslashit( NEWSLETTERGATE_PATH ) . 'src/images/icon.svg' ) );
+        $this->menu_icon  = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1ODEgNTgxIj4KICAgIDxwYXRoIGZpbGw9IiNhN2FhYWQiIGQ9Im0xMTIuNDIsMTE2LjJoMzg0LjkxYzM2LjMxLDAsNTQuNjEsMTcuMTQsNTQuNjEsNTJ2MjQ0LjZjMCwzNC41Ny0xOC4zLDUyLTU0LjYxLDUySDExMi40MmMtMzYuMzEsMC01NC42MS0xNy40My01NC42MS01MnYtMjQ0LjZjMC0zNC44NiwxOC4zLTUyLDU0LjYxLTUyWm0xOTIuMzEsMjQ5LjgzbDE5NS44LTE2MC42NWM2Ljk3LTUuODEsMTIuNDktMTkuMTcsMy43OC0zMS4wOC04LjQyLTExLjkxLTIzLjgyLTEyLjItMzMuOTktNC45NGwtMTY1LjU4LDExMi4xMy0xNjUuMjktMTEyLjEzYy0xMC4xNy03LjI2LTI1LjU2LTYuOTctMzMuOTksNC45NC04LjcxLDExLjkxLTMuMiwyNS4yNywzLjc4LDMxLjA4bDE5NS41MSwxNjAuNjVaIi8+CiAgICA8cGF0aCBzdHJva2U9IiMwMDAiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgZD0ibTM4NC44OCwyNzQuNWgtMTZ2LTQ4YzAtMzUuMi0yOC44LTY0LTY0LTY0cy02NCwyOC44LTY0LDY0djQ4aC0xNmMtOCwwLTE2LDgtMTYsMTZ2MTEyYzAsOCw4LDE2LDE2LDE2aDE2MGM4LDAsMTYtOCwxNi0xNnYtMTEyYzAtOC04LTE2LTE2LTE2Wm0tNjQsMTEyaC0zMmw2LjQtMzUuMmMtOC0zLjItMTQuNC0xMi44LTE0LjQtMjAuOCwwLTEyLjgsMTEuMi0yNCwyNC0yNHMyNCwxMS4yLDI0LDI0YzAsOS42LTQuOCwxNy42LTE0LjQsMjAuOGw2LjQsMzUuMlptMTYtMTEyaC02NHYtNDhjMC0xNy42LDE0LjQtMzIsMzItMzJzMzIsMTQuNCwzMiwzMnY0OFoiLz4KPC9zdmc+';
 
         $this->set_fields();
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue' ] );

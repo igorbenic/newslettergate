@@ -27,9 +27,8 @@ class AJAX {
     public function check() {
         check_ajax_referer( 'newslettergate', 'nonce' );
 
-        $posted_data = $_POST;
-        $atts        = [];
-        parse_str( $posted_data['data'], $atts );
+        $atts = [];
+        parse_str( $_POST['data'], $atts );
 
         /** @var Integration $integration */
         $integration = newslettergate()->get_integration( $atts['ng_integration'] );
@@ -111,9 +110,8 @@ class AJAX {
     public function subscribe() {
         check_ajax_referer( 'newslettergate', 'nonce' );
 
-        $posted_data = $_POST;
-        $atts        = [];
-        parse_str( $posted_data['data'], $atts );
+        $atts = [];
+        parse_str( $_POST['data'], $atts );
 
         $subscribe_enabled = absint( newslettergate()->settings->get_option( 'enable_subscribe', 0 ) );
 

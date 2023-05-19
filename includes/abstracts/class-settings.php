@@ -366,7 +366,7 @@ abstract class Settings {
             }
         }
 
-        do_action( $this->id . '_settings_sanitized', $input, $fields, $_POST, $this );
+        do_action( $this->id . '_settings_sanitized', $input, $fields, $this );
 
         return $input;
     }
