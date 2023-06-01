@@ -55,11 +55,14 @@ This section describes how to install the plugin and get it working.
 
 == Changelog ==
 
+= 1.2.1 - 2023-06-01 =
+* Refactored code and made it more secure.
+
 = 1.2.0 - 2023-04-25 =
-* Mailerlite Integration
+* Mailerlite Integration.
 
 = 1.1.0 - 2023-04-22 =
-* ConvertKit Integration
+* ConvertKit Integration.
 
 = 1.0.0 - 2023-04-19 =
-* Initial Release
+* Initial Release.
