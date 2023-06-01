@@ -1,197 +1,249 @@
 <?php
+/**
+ * AJAX class to handle everything around AJAX calls.
+ *
+ * @package NewsletterGate
+ */
 
 namespace NewsletterGate;
 
 use NewsletterGate\Abstracts\API;
-use NewsletterGate\Abstracts\Integration;
 
+/**
+ * AJAX class.
+ */
 class AJAX {
 
+	/**
+	 * Constructor method.
+	 */
+	public function __construct() {
+		$actions = array(
+			'check'     => true,
+			'subscribe' => true,
+		);
 
-    public function __construct() {
-        $actions = [
-            'check'     => true,
-            'subscribe' => true
-        ];
+		foreach ( $actions as $action => $nopriv ) {
+			add_action( 'wp_ajax_newslettergate_' . $action, array( $this, $action ) );
 
-        foreach ( $actions as $action => $nopriv ) {
-            add_action( 'wp_ajax_newslettergate_' . $action, [ $this, $action ] );
+			if ( $nopriv ) {
+				add_action( 'wp_ajax_nopriv_newslettergate_' . $action, array( $this, $action ) );
+			}
+		}
 
-            if ( $nopriv ) {
-                add_action( 'wp_ajax_nopriv_newslettergate_' . $action, [ $this, $action ] );
-            }
-        }
+	}
 
-    }
+	/**
+	 * Check if the email is subscribed.
+	 *
+	 * @return void
+	 */
+	public function check() {
+		check_ajax_referer( 'newslettergate', 'nonce' );
 
-    public function check() {
-        check_ajax_referer( 'newslettergate', 'nonce' );
+		$atts = ! empty( $_POST['data'] ) ? $this->clean_data( wp_unslash( $_POST['data'] ) ) : array(); // phpcs:ignore -- Reason: Data sanitized in clean_data method.
 
-        $atts = [];
-        parse_str( $_POST['data'], $atts );
+		/**
+		 * Integration API object.
+		 *
+		 * @var API $integration
+		 */
+		$integration = newslettergate()->get_integration( $atts['ng_integration'] );
 
-        /** @var Integration $integration */
-        $integration = newslettergate()->get_integration( $atts['ng_integration'] );
+		if ( ! $integration ) {
+			wp_send_json_error();
+			wp_die();
+		}
 
-        if ( ! $integration ) {
-            wp_send_json_error();
-            wp_die();
-        }
+		if ( ! $integration->is_enabled() ) {
+			wp_send_json_error();
+			wp_die();
+		}
 
-        if ( ! $integration->is_enabled() ) {
-            wp_send_json_error();
-            wp_die();
-        }
+		$subscribed = $integration->is_subscribed( $atts['ng_email'], $atts['ng_list'] );
 
-        $subscribed = $integration->is_subscribed( $atts['ng_email'], $atts['ng_list'] );
+		$data = array();
 
-        $data = [];
+		if ( $subscribed ) {
+			$subscriber = new Subscriber();
+			$subscriber = $subscriber->maybe_find_subscriber( $atts['ng_email'], $atts['ng_integration'], $atts['ng_list'] );
+			$subscriber->save();
+			$data['reload'] = true;
+			wp_send_json_success( $data );
+			wp_die();
+		}
 
-        if ( $subscribed ) {
-            $subscriber = new Subscriber();
-            $subscriber = $subscriber->maybe_find_subscriber( $atts['ng_email'], $atts['ng_integration'], $atts['ng_list'] );
-            $subscriber->save();
-            $data['reload'] = true;
-            wp_send_json_success( $data );
-            wp_die();
-        }
+		$subscribe_enabled = absint( newslettergate()->settings->get_option( 'enable_subscribe', 0 ) );
 
-        $subscribe_enabled = absint( newslettergate()->settings->get_option( 'enable_subscribe', 0 ) );
+		if ( ! $subscribe_enabled ) {
+			$heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
+			$text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
+			$button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
 
-        if ( ! $subscribe_enabled ) {
-            $heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
-            $text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
-            $button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
+			$templates = new Templates();
+			ob_start();
 
-            $templates = new Templates();
-            ob_start();
+			$templates->get_template(
+				'forms/default.php',
+				array(
+					'heading'     => $heading,
+					'text'        => $text,
+					'button'      => $button,
+					'integration' => $atts['ng_integration'],
+					'list_id'     => $atts['ng_list'],
+					'email'       => $atts['ng_email'],
+					'errors'      => array( __( 'Your email is not subscribed to our email list. Please contact us to learn more.', 'newslettergate' ) ),
+				)
+			);
 
-            $templates->get_template( 'forms/default.php', [
-                'heading'     => $heading,
-                'text'        => $text,
-                'button'      => $button,
-                'integration' => $atts['ng_integration'],
-                'list_id'     => $atts['ng_list'],
-                'email'       => $atts['ng_email'],
-                'errors'      => [ __( 'Your email is not subscribed to our email list. Please contact us to learn more.', 'newslettergate' ) ]
-            ]);
+			$html = ob_get_clean();
+			$data = array( 'html' => $html );
+			wp_send_json_success( $data );
+			wp_die();
+		}
 
-            $html = ob_get_clean();
-            $data = [ 'html' => $html ];
-            wp_send_json_success( $data );
-            wp_die();
-        }
+		$heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
+		$text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
+		$button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
 
-        $heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
-        $text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
-        $button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
+		$templates = new Templates();
+		ob_start();
 
-        $templates = new Templates();
-        ob_start();
+		$templates->get_template(
+			'forms/subscribe.php',
+			array(
+				'heading'     => $heading,
+				'text'        => $text,
+				'button'      => $button,
+				'integration' => $atts['ng_integration'],
+				'list_id'     => $atts['ng_list'],
+				'email'       => $atts['ng_email'],
+			)
+		);
 
-        $templates->get_template( 'forms/subscribe.php', [
-            'heading'     => $heading,
-            'text'        => $text,
-            'button'      => $button,
-            'integration' => $atts['ng_integration'],
-            'list_id'     => $atts['ng_list'],
-            'email'       => $atts['ng_email']
-        ]);
+		$html = ob_get_clean();
 
-        $html = ob_get_clean();
+		$data = array(
+			'html' => $html,
+		);
+		wp_send_json_success( $data );
+		wp_die();
+	}
 
-        $data = [
-            'html' => $html
-        ];
-        wp_send_json_success( $data );
-        wp_die();
-    }
+	/**
+	 * Clean data.
+	 *
+	 * @param mixed $var Data to sanitize.
+	 *
+	 * @return array|mixed|string
+	 */
+	public function clean_data( $var ) {
+		if ( is_array( $var ) ) {
+			return array_map( array( $this, 'clean_data' ), $var );
+		} else {
+			return is_scalar( $var ) ? sanitize_text_field( $var ) : $var;
+		}
+	}
 
-    public function subscribe() {
-        check_ajax_referer( 'newslettergate', 'nonce' );
+	/**
+	 * Subscribe to the list.
+	 *
+	 * @return void
+	 */
+	public function subscribe() {
+		check_ajax_referer( 'newslettergate', 'nonce' );
 
-        $atts = [];
-        parse_str( $_POST['data'], $atts );
+		$atts = ! empty( $_POST['data'] ) ? $this->clean_data( wp_unslash( $_POST['data'] ) ) : array(); // phpcs:ignore -- Reason: Data sanitized in clean_data method.
 
-        $subscribe_enabled = absint( newslettergate()->settings->get_option( 'enable_subscribe', 0 ) );
+		$subscribe_enabled = absint( newslettergate()->settings->get_option( 'enable_subscribe', 0 ) );
 
-        if ( ! $subscribe_enabled ) {
-            $heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
-            $text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
-            $button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
+		if ( ! $subscribe_enabled ) {
+			$heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
+			$text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
+			$button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
 
-            $templates = new Templates();
-            ob_start();
+			$templates = new Templates();
+			ob_start();
 
-            $templates->get_template( 'forms/default.php', [
-                'heading'     => $heading,
-                'text'        => $text,
-                'button'      => $button,
-                'integration' => $atts['ng_integration'],
-                'list_id'     => $atts['ng_list'],
-                'email'       => $atts['ng_email'],
-                'errors'      => [ __( 'Your email is not subscribed to our email list. Please contact us to learn more.', 'newslettergate' ) ]
-            ]);
+			$templates->get_template(
+				'forms/default.php',
+				array(
+					'heading'     => $heading,
+					'text'        => $text,
+					'button'      => $button,
+					'integration' => $atts['ng_integration'],
+					'list_id'     => $atts['ng_list'],
+					'email'       => $atts['ng_email'],
+					'errors'      => array( __( 'Your email is not subscribed to our email list. Please contact us to learn more.', 'newslettergate' ) ),
+				)
+			);
 
-            $html = ob_get_clean();
-            $data = [ 'html' => $html ];
-            wp_send_json_success( $data );
-            wp_die();
-        }
+			$html = ob_get_clean();
+			$data = array( 'html' => $html );
+			wp_send_json_success( $data );
+			wp_die();
+		}
 
-        /** @var API $integration */
-        $integration = newslettergate()->get_integration( $atts['ng_integration'] );
+		/**
+		 * Integration API object.
+		 *
+		 * @var API $integration
+		 */
+		$integration = newslettergate()->get_integration( $atts['ng_integration'] );
 
-        if ( ! $integration ) {
-            wp_send_json_error();
-            wp_die();
-        }
+		if ( ! $integration ) {
+			wp_send_json_error();
+			wp_die();
+		}
 
-        if ( ! $integration->is_enabled() ) {
-            wp_send_json_error();
-            wp_die();
-        }
+		if ( ! $integration->is_enabled() ) {
+			wp_send_json_error();
+			wp_die();
+		}
 
-        $subscribed = $integration->subscribe( $atts['ng_email'], $atts['ng_list'] );
+		$subscribed = $integration->subscribe( $atts['ng_email'], $atts['ng_list'] );
 
-        if ( $subscribed && ! is_wp_error( $subscribed ) ) {
-            $subscriber = new Subscriber();
-            $subscriber = $subscriber->maybe_find_subscriber( $atts['ng_email'], $atts['ng_integration'], $atts['ng_list'] );
-            $subscriber->save();
-            $data['reload'] = true;
-            wp_send_json_success( $data );
-            wp_die();
-        }
+		if ( $subscribed && ! is_wp_error( $subscribed ) ) {
+			$subscriber = new Subscriber();
+			$subscriber = $subscriber->maybe_find_subscriber( $atts['ng_email'], $atts['ng_integration'], $atts['ng_list'] );
+			$subscriber->save();
+			$data['reload'] = true;
+			wp_send_json_success( $data );
+			wp_die();
+		}
 
-        $error = __( 'We could not subscribe you. Please contact us', 'newslettergate' );
+		$error = __( 'We could not subscribe you. Please contact us', 'newslettergate' );
 
-        if ( is_wp_error( $subscribed ) ) {
-            $error = $subscribed->get_error_message();
-        }
+		if ( is_wp_error( $subscribed ) ) {
+			$error = $subscribed->get_error_message();
+		}
 
-        $heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
-        $text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
-        $button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
+		$heading = newslettergate()->settings->get_option( 'heading_subscribe', '' );
+		$text    = newslettergate()->settings->get_option( 'text_subscribe', '' );
+		$button  = newslettergate()->settings->get_option( 'button_subscribe', __( 'Subscribe to Unlock', 'newslettergate' ) );
 
-        $templates = new Templates();
-        ob_start();
+		$templates = new Templates();
+		ob_start();
 
-        $templates->get_template( 'forms/subscribe.php', [
-            'heading'     => $heading,
-            'text'        => $text,
-            'button'      => $button,
-            'integration' => $atts['ng_integration'],
-            'list_id'     => $atts['ng_list'],
-            'email'       => $atts['ng_email'],
-            'errors'      => [ $error ]
-        ]);
+		$templates->get_template(
+			'forms/subscribe.php',
+			array(
+				'heading'     => $heading,
+				'text'        => $text,
+				'button'      => $button,
+				'integration' => $atts['ng_integration'],
+				'list_id'     => $atts['ng_list'],
+				'email'       => $atts['ng_email'],
+				'errors'      => array( $error ),
+			)
+		);
 
-        $html = ob_get_clean();
+		$html = ob_get_clean();
 
-        $data = [
-            'html' => $html
-        ];
-        wp_send_json_success( $data );
-        wp_die();
-    }
+		$data = array(
+			'html' => $html,
+		);
+		wp_send_json_success( $data );
+		wp_die();
+	}
 }

@@ -1,197 +1,274 @@
 <?php
+/**
+ * ConvertKit class.
+ *
+ * @package NewsletterGate
+ */
 
 namespace NewsletterGate\integrations;
 
 use NewsletterGate\Abstracts\API;
 
+/**
+ * ConvertKit class.
+ */
 class ConvertKit extends API {
 
-    protected $id = 'convertkit';
+	/**
+	 * Integration ID.
+	 *
+	 * @var string
+	 */
+	protected $id = 'convertkit';
 
-    protected $api_url = 'https://api.convertkit.com/v3/';
+	/**
+	 * API URL.
+	 *
+	 * @var string
+	 */
+	protected $api_url = 'https://api.convertkit.com/v3/';
 
-    public function __construct() {
-        add_filter( 'newslettergate_get_settings_fields', [ $this, 'add_fields' ] );
-    }
+	/**
+	 * Constructor method.
+	 */
+	public function __construct() {
+		add_filter( 'newslettergate_get_settings_fields', array( $this, 'add_fields' ) );
+	}
 
-    public function add_fields( $fields ) {
-        $fields[] = [
-            'title' => __( 'ConvertKit', 'newslettergate' ),
-            'type'  => 'section',
-            'name'  => 'convertkit_section',
-        ];
+	/**
+	 * Add fields for the integration.
+	 *
+	 * @param array $fields Fields configuration.
+	 *
+	 * @return mixed
+	 */
+	public function add_fields( $fields ) {
+		$fields[] = array(
+			'title' => __( 'ConvertKit', 'newslettergate' ),
+			'type'  => 'section',
+			'name'  => 'convertkit_section',
+		);
 
-        $fields[] = [
-            'title' => __( 'Enable', 'newslettergate' ),
-            'type'  => 'checkbox',
-            'name'  => 'convertkit_enabled',
-            'description' => __( 'Enable to be used for subscribing people for restricting content. If disabled, all content gated by ConvertKit will be shown.', 'newslettergate' ),
-            'section' => 'convertkit_section',
-        ];
+		$fields[] = array(
+			'title'       => __( 'Enable', 'newslettergate' ),
+			'type'        => 'checkbox',
+			'name'        => 'convertkit_enabled',
+			'description' => __( 'Enable to be used for subscribing people for restricting content. If disabled, all content gated by ConvertKit will be shown.', 'newslettergate' ),
+			'section'     => 'convertkit_section',
+		);
 
-        $fields[] = [
-            'title' => __( 'API Secret Key', 'newslettergate' ),
-            'type'  => 'text',
-            'name'  => 'convertkit_api_key',
-            'section' => 'convertkit_section'
-        ];
+		$fields[] = array(
+			'title'   => __( 'API Secret Key', 'newslettergate' ),
+			'type'    => 'text',
+			'name'    => 'convertkit_api_key',
+			'section' => 'convertkit_section',
+		);
 
-        $fields[] = [
-            'title' => __( 'Lists', 'newslettergate' ),
-            'type'  => 'lists',
-            'name'  => 'convertkit_lists',
-            'section' => 'convertkit_section',
-            'render' => [ $this, 'render_lists' ]
-        ];
+		$fields[] = array(
+			'title'   => __( 'Lists', 'newslettergate' ),
+			'type'    => 'lists',
+			'name'    => 'convertkit_lists',
+			'section' => 'convertkit_section',
+			'render'  => array( $this, 'render_lists' ),
+		);
 
-        return $fields;
-    }
+		return $fields;
+	}
 
-    public function render_lists( $args ) {
-        $lists = $this->get_lists();
-        if ( is_wp_error( $lists ) ) {
-            ?>
-            <p style="color:red;"><?php echo esc_html( $lists->get_error_message() ); ?></p>
-            <?php
-            return;
-        }
-        ?>
-        <table class="wp-list-table widefat striped posts">
-            <?php
-            foreach ( $lists as $list_id => $list_name ) {
-                ?>
-                <tr>
-                    <td>
-                        <?php echo esc_html( $list_name ); ?>
-                    </td>
-                    <td>
-                        <code>[newslettergate provider=convertkit list=<?php echo esc_html( $list_id ); ?>]Content To Gate[/newslettergate]</code>
-                    </td>
-                </tr>
-                <?php
-            }
-            ?>
+	/**
+	 * Render lists.
+	 *
+	 * @param array $args Field configuration.
+	 *
+	 * @return void
+	 */
+	public function render_lists( $args ) {
+		$lists = $this->get_lists();
+		if ( is_wp_error( $lists ) ) {
+			?>
+			<p style="color:red;"><?php echo esc_html( $lists->get_error_message() ); ?></p>
+			<?php
+			return;
+		}
+		?>
+		<table class="wp-list-table widefat striped posts">
+			<?php
+			foreach ( $lists as $list_id => $list_name ) {
+				?>
+				<tr>
+					<td>
+						<?php echo esc_html( $list_name ); ?>
+					</td>
+					<td>
+						<code>[newslettergate provider=convertkit list=<?php echo esc_html( $list_id ); ?>]Content To Gate[/newslettergate]</code>
+					</td>
+				</tr>
+				<?php
+			}
+			?>
 
-        </table>
-        <?php
-    }
+		</table>
+		<?php
+	}
 
-    protected function get_default_headers() {
-        return [
-            'Content-Type' => 'application/json; charset=utf-8',
-        ];
-    }
+	/**
+	 * Get the default headers for requests.
+	 *
+	 * @return array
+	 */
+	protected function get_default_headers() {
+		return array(
+			'Content-Type' => 'application/json; charset=utf-8',
+		);
+	}
 
-    public function get_lists() {
-        $lists = $this->get('forms?api_secret=' . $this->get_api_key() );
+	/**
+	 * Get Integration lists.
+	 *
+	 * @return array|mixed|\WP_Error
+	 */
+	public function get_lists() {
+		$lists = $this->get( 'forms?api_secret=' . $this->get_api_key() );
 
-        if ( is_wp_error( $lists ) ) {
-            return $lists;
-        }
+		if ( is_wp_error( $lists ) ) {
+			return $lists;
+		}
 
-        $body  = wp_remote_retrieve_body( $lists );
+		$body = wp_remote_retrieve_body( $lists );
 
-        return wp_list_pluck( json_decode( $body, true )['forms'], 'name', 'id' );
-    }
+		return wp_list_pluck( json_decode( $body, true )['forms'], 'name', 'id' );
+	}
 
-    protected function prepare_response( $response ) {
-        if ( is_wp_error( $response ) ) {
-            return $response;
-        }
+	/**
+	 * Prepare the response given from MailerLite.
+	 *
+	 * @param array|\WP_Error $response Response.
+	 *
+	 * @return mixed|\WP_Error
+	 */
+	protected function prepare_response( $response ) {
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
 
-        if ( wp_remote_retrieve_response_code( $response ) < 300 ) {
-            return $response;
-        }
+		if ( wp_remote_retrieve_response_code( $response ) < 300 ) {
+			return $response;
+		}
 
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-        if ( ! empty( $body['error'] ) ) {
-            return new \WP_Error( wp_remote_retrieve_response_code( $response ), $body['error'] . ': ' . $body['message'] );
-        }
+		if ( ! empty( $body['error'] ) ) {
+			return new \WP_Error( wp_remote_retrieve_response_code( $response ), $body['error'] . ': ' . $body['message'] );
+		}
 
-        return new \WP_Error( wp_remote_retrieve_response_code( $response ), __( 'Something went wrong.', 'newslettergate' ));;
-    }
+		return new \WP_Error( wp_remote_retrieve_response_code( $response ), __( 'Something went wrong.', 'newslettergate' ) );
 
-    /**
-     * Get Subscribers.
-     *
-     * @param string $form_id
-     * @param int    $page
-     * @return false|mixed
-     */
-    public function get_subscribers_for_form( $form_id, $page = 1 ) {
-        $members = $this->get('forms/' . $form_id . '/subscriptions?subscriber_state=active&api_secret=' . $this->get_api_key() . '&page=' . $page );
+	}
 
-        if ( is_wp_error( $members ) ) {
-            return false;
-        }
+	/**
+	 * Get Subscribers from a form.
+	 *
+	 * @param string $form_id Form ID.
+	 * @param int    $page Page number.
+	 *
+	 * @return false|mixed
+	 */
+	public function get_subscribers_for_form( $form_id, $page = 1 ) {
+		$members = $this->get( 'forms/' . $form_id . '/subscriptions?subscriber_state=active&api_secret=' . $this->get_api_key() . '&page=' . $page );
 
-        return json_decode( wp_remote_retrieve_body( $members ), true );
-    }
+		if ( is_wp_error( $members ) ) {
+			return false;
+		}
 
-    public function find_subscriber_in_form( $email, $form_id ) {
+		return json_decode( wp_remote_retrieve_body( $members ), true );
+	}
 
-        $response = $this->get_subscribers_for_form( $form_id );
+	/**
+	 * Find a subscriber in the ConvertKit form.
+	 *
+	 * @param string $email Email.
+	 * @param mixed  $form_id Form ID.
+	 *
+	 * @return bool
+	 */
+	public function find_subscriber_in_form( $email, $form_id ) {
 
-        if ( empty( $response['subscriptions'] ) ) {
-            return false;
-        }
+		$response = $this->get_subscribers_for_form( $form_id );
 
-        $subs = wp_list_pluck( $response['subscriptions'], 'subscriber' );
-        foreach ( $subs as $sub ) {
-            if ( $sub['email_address'] === $email ) {
-                return true;
-            }
-        }
+		if ( empty( $response['subscriptions'] ) ) {
+			return false;
+		}
 
-        $total_pages = $response['total_pages'];
+		$subs = wp_list_pluck( $response['subscriptions'], 'subscriber' );
+		foreach ( $subs as $sub ) {
+			if ( $sub['email_address'] === $email ) {
+				return true;
+			}
+		}
 
-        for( $page = 2; $page <= $total_pages; $page++ ) {
-            $response = $this->get_subscribers_for_form( $form_id, $page );
-            if ( empty( $response['subscriptions'] ) ) {
-                return false;
-            }
+		$total_pages = $response['total_pages'];
 
-            $subs = wp_list_pluck( $response['subscriptions'], 'subscriber' );
-            foreach ( $subs as $sub ) {
-                if ( $sub['email_address'] === $email ) {
-                    return true;
-                }
-            }
-        }
+		for ( $page = 2; $page <= $total_pages; $page++ ) {
+			$response = $this->get_subscribers_for_form( $form_id, $page );
+			if ( empty( $response['subscriptions'] ) ) {
+				return false;
+			}
 
-        return false;
+			$subs = wp_list_pluck( $response['subscriptions'], 'subscriber' );
+			foreach ( $subs as $sub ) {
+				if ( $sub['email_address'] === $email ) {
+					return true;
+				}
+			}
+		}
 
-    }
+		return false;
+	}
 
-    public function is_subscribed_on_provider( $email, $list_id = null ) {
-        return $this->find_subscriber_in_form( $email, $list_id );
-    }
 
-    protected function prepare_body( $body ) {
-        return json_encode( $body );
-    }
+	/**
+	 * Check if the email is subscribed on this integration.
+	 *
+	 * @param string $email Email.
+	 * @param mixed  $list_id List ID.
+	 *
+	 * @return bool
+	 */
+	public function is_subscribed_on_provider( $email, $list_id = null ) {
+		return $this->find_subscriber_in_form( $email, $list_id );
+	}
 
-    /**
-     * Subscribe an email.
-     *
-     * @param string $email Email.
-     * @param mixed  $list_id List ID.
-     *
-     * @return true|\WP_Error
-     */
-    public function subscribe( $email, $list_id ) {
-        $body = array(
-            'email'      => $email,
-            'api_secret' => $this->get_api_key(),
-        );
+	/**
+	 * Prepare body for the request.
+	 *
+	 * @param array $body Body for request.
+	 *
+	 * @return array|false|mixed|string
+	 */
+	protected function prepare_body( $body ) {
+		return wp_json_encode( $body );
+	}
 
-        $post = $this->post( 'forms/' . $list_id . '/subscribe', $body );
+	/**
+	 * Subscribe an email.
+	 *
+	 * @param string $email Email.
+	 * @param mixed  $list_id List ID.
+	 *
+	 * @return true|\WP_Error
+	 */
+	public function subscribe( $email, $list_id ) {
+		$body = array(
+			'email'      => $email,
+			'api_secret' => $this->get_api_key(),
+		);
 
-        if ( ! is_wp_error( $post ) ) {
-            return true;
-        }
+		$post = $this->post( 'forms/' . $list_id . '/subscribe', $body );
 
-        return $post;
-    }
+		if ( ! is_wp_error( $post ) ) {
+			return true;
+		}
+
+		return $post;
+	}
 }
