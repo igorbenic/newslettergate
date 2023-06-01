@@ -15,7 +15,7 @@ function NewsletterGate($){
 				e.preventDefault();
 
 				var $this = $( this ),
-				nGate     = this,
+				self      = this,
 				container = $this.parents( '.newslettergate' );
 
 				container.addClass( 'newslettergate-loading' );
@@ -25,7 +25,7 @@ function NewsletterGate($){
 						url: newslettergate.ajax,
 						data: {
 							nonce: newslettergate.nonce,
-							data: nGate.parseString( $( this ).serialize() ),
+							data: parseString( $( this ).serialize() ),
 							action: $( this ).find( '[name=ng_action]' ).val()
 						},
 						success: function( resp ) {
@@ -62,7 +62,7 @@ function NewsletterGate($){
 		);
 	}
 
-	this.parseString = function parseString(queryString) {
+	var parseString = function parseString(queryString) {
 		var params      = {};
 		var queries     = queryString.split( '&' );
 		var queryLength = queries.length;
@@ -77,13 +77,15 @@ function NewsletterGate($){
 				value = '';
 			}
 
+			var hasBracket = key.search( "]" ) > 0;
+
 			// Check if the key contains array syntax, e.g., checks[s].
 			var match = key.match( /^([^\[\]]+)(\[([^\[\]]*)\])*$/ );
-			if (match) {
+			if (match && hasBracket) {
 				var mainKey = match[1];
 				var subKey  = match[3];
 
-				if (subKey === '') {
+				if (subKey === '' || 'undefined' === subKey) {
 					// If the subKey is empty, treat it as an array without keys.
 					if ( ! params.hasOwnProperty( mainKey )) {
 						params[mainKey] = [];
